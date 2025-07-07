@@ -3,68 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LINE 綁定 Airtable</title>
+  <title>會員綁定表單</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <h1>綁定中，請稍候...</h1>
+  <h2>綁定會員資料</h2>
+  <form id="bindForm">
+    <label>姓名：<input type="text" id="name" required /></label><br/>
+    <label>生日：<input type="date" id="birthday" required /></label><br/>
+    <label>手機：<input type="tel" id="phone" required /></label><br/>
+    <button type="submit">綁定</button>
+  </form>
 
   <script>
     const AIRTABLE_API_KEY = 'patitOHNhbvRSL5ao.82017354382680e3dfbe9259e6fd446fd1c9f2d90bc52225d4e14d3d7d53068f';
     const BASE_ID = 'appQ1jsnnFpGWs00U';
     const TABLE_NAME = '顧客資料';
 
-    async function writeToAirtable(userId) {
-      const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
-      const data = {
-        records: [
-          {
-            fields: {
-              userId: userId
-            }
-          }
-        ]
-      };
+    async function searchRecord(name, birthday, phone) {
+      const filterFormula = `AND({姓名}='${name}', {生日}='${birthday}', {手機}='${phone}')`;
+      const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+      });
+      const data = await res.json();
+      return data.records;
+    }
+
+    async function updateRecord(recordId, userId) {
+      const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}/${recordId}`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fields: { userId } })
+      });
+      if (!res.ok) throw new Error('更新失敗');
+    }
+
+    async function createRecord(name, birthday, phone, userId) {
+      const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          records: [{
+            fields: {
+              姓名: name,
+              生日: birthday,
+              手機: phone,
+              userId: userId
+            }
+          }]
+        })
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error('Airtable API error: ' + text);
-      }
-
-      return await res.json();
+      if (!res.ok) throw new Error('新增失敗');
     }
 
     async function main() {
-      try {
-        await liff.init({ liffId: "2007700475-oZJlna2Z" });
+      await liff.init({ liffId: '2007700475-oZJlna2Z' });
 
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const profile = await liff.getProfile();
-        const userId = profile.userId;
-
-        console.log("✅ 取得 userId:", userId);
-
-        const result = await writeToAirtable(userId);
-        console.log("✅ 寫入 Airtable 成功:", result);
-        alert("綁定成功！");
-
-      } catch (err) {
-        console.error(err);
-        alert("綁定失敗，請稍後再試。");
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
       }
+
+      const profile = await liff.getProfile();
+      const userId = profile.userId;
+      console.log('✅ 取得 userId:', userId);
+
+      document.getElementById('bindForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value.trim();
+        const birthday = document.getElementById('birthday').value;
+        const phone = document.getElementById('phone').value.trim();
+
+        try {
+          const records = await searchRecord(name, birthday, phone);
+
+          if (records.length > 0) {
+            await updateRecord(records[0].id, userId);
+            alert('✅ 成功綁定：已更新您的 LINE 帳號！');
+          } else {
+            await createRecord(name, birthday, phone, userId);
+            alert('✅ 成功綁定：已新增您的資料！');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('❌ 綁定失敗，請稍後再試。');
+        }
+      });
     }
 
     main();
