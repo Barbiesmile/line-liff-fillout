@@ -28,8 +28,8 @@
       console.log("已登入，取得 userId：", userId);
 
       // 塞入 Fillout 表單
-      const filloutUrl = `${filloutBaseUrl}?line_userId=${encodeURIComponent(userId)}`;
-      document.getElementById("filloutForm").src = filloutUrl;
+      const filloutUrl = `https://forms.fillout.com/t/qCn2cx8hVuus?prefill_line_userId=${encodeURIComponent(userId)}`;
+document.getElementById("filloutForm").src = filloutUrl;
     } catch (err) {
       console.error("LIFF 錯誤：", err);
       alert("LIFF 發生錯誤：" + err.message);
