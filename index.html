@@ -17,25 +17,30 @@
       await liff.init({ liffId: "2007700475-oZJlna2Z" });
 
       if (!liff.isLoggedIn()) {
-        console.log("使用者未登入，準備跳轉登入...");
         liff.login();
         return;
       }
 
       const profile = await liff.getProfile();
+
+      if (!profile?.userId) {
+        console.warn("⚠️ 無法取得 userId，重新登入");
+        liff.logout(); // 清掉舊 session
+        liff.login();  // 重新登入
+        return;
+      }
+
       const userId = profile.userId;
+      console.log("✅ 成功取得 userId:", userId);
 
-      console.log("已登入，取得 userId：", userId);
+      const filloutUrl = `${filloutBaseUrl}?prefill_line_userId=${encodeURIComponent(userId)}`;
+      document.getElementById("filloutForm").src = filloutUrl;
 
-      // 塞入 Fillout 表單
-      const filloutUrl = `https://forms.fillout.com/t/qCn2cx8hVuus?prefill_line_userId=${encodeURIComponent(userId)}`;
-document.getElementById("filloutForm").src = filloutUrl;
     } catch (err) {
-      console.error("LIFF 錯誤：", err);
+      console.error("LIFF 發生錯誤：", err);
       alert("LIFF 發生錯誤：" + err.message);
     }
   }
 
   main();
 </script>
-
