@@ -3,16 +3,95 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>會員綁定表單</title>
+  <title>LINE 綁定表單</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: #f7f8fa;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+    }
+
+    form {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #06c755;
+      border: none;
+      color: white;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #05a14a;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 1rem;
+      }
+
+      form {
+        padding: 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>綁定會員資料</h2>
+  <h2>LINE 帳號綁定會員資料</h2>
+
   <form id="bindForm">
-    <label>姓名：<input type="text" id="name" required /></label><br/>
-    <label>生日：<input type="date" id="birthday" required /></label><br/>
-    <label>手機：<input type="tel" id="phone" required /></label><br/>
-    <button type="submit">綁定</button>
+    <label>姓名
+      <input type="text" id="name" placeholder="請輸入您的姓名" required />
+    </label>
+    <label>生日
+      <input type="date" id="birthday" required />
+    </label>
+    <label>手機
+      <input type="tel" id="phone" placeholder="例如：0912345678" required />
+    </label>
+    <button type="submit">立即綁定</button>
   </form>
 
   <script>
@@ -23,7 +102,6 @@
     async function searchRecord(name, birthday, phone) {
       const filterFormula = `AND({姓名}='${name}', {生日}='${birthday}', {手機}='${phone}')`;
       const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}?filterByFormula=${encodeURIComponent(filterFormula)}`;
-
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
       });
@@ -76,7 +154,6 @@
 
       const profile = await liff.getProfile();
       const userId = profile.userId;
-      console.log('✅ 取得 userId:', userId);
 
       document.getElementById('bindForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -87,7 +164,6 @@
 
         try {
           const records = await searchRecord(name, birthday, phone);
-
           if (records.length > 0) {
             await updateRecord(records[0].id, userId);
             alert('✅ 成功綁定：已更新您的 LINE 帳號！');
@@ -97,7 +173,7 @@
           }
         } catch (err) {
           console.error(err);
-          alert('❌ 綁定失敗，請稍後再試。');
+          alert('❌ 綁定失敗：' + err.message);
         }
       });
     }
