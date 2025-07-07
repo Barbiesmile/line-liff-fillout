@@ -10,18 +10,32 @@
   <iframe id="filloutForm" style="width:100%; height:100vh; border:none;"></iframe>
 
   <script>
-    const filloutBaseUrl = "https://forms.fillout.com/t/qCn2cx8hVuus";
+  const filloutBaseUrl = "https://forms.fillout.com/t/qCn2cx8hVuus";
 
-    async function main() {
+  async function main() {
+    try {
       await liff.init({ liffId: "2007700475-oZJlna2Z" });
+
+      if (!liff.isLoggedIn()) {
+        console.log("使用者未登入，準備跳轉登入...");
+        liff.login();
+        return;
+      }
+
       const profile = await liff.getProfile();
       const userId = profile.userId;
 
+      console.log("已登入，取得 userId：", userId);
+
+      // 塞入 Fillout 表單
       const filloutUrl = `${filloutBaseUrl}?line_userId=${encodeURIComponent(userId)}`;
       document.getElementById("filloutForm").src = filloutUrl;
+    } catch (err) {
+      console.error("LIFF 錯誤：", err);
+      alert("LIFF 發生錯誤：" + err.message);
     }
+  }
 
-    main().catch(console.error);
-  </script>
-</body>
-</html>
+  main();
+</script>
+
