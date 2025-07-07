@@ -3,44 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LINE 綁定 Fillout 表單</title>
+  <title>LINE 綁定 Airtable</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-  <iframe id="filloutForm" style="width:100%; height:100vh; border:none;"></iframe>
+  <h1>綁定中，請稍候...</h1>
 
   <script>
-  const filloutBaseUrl = "https://forms.fillout.com/t/qCn2cx8hVuus";
+    const AIRTABLE_API_KEY = 'patitOHNhbvRSL5ao.82017354382680e3dfbe9259e6fd446fd1c9f2d90bc52225d4e14d3d7d53068f';
+    const BASE_ID = 'appQ1jsnnFpGWs00U';
+    const TABLE_NAME = '顧客資料';
 
-  async function main() {
-    try {
-      await liff.init({ liffId: "2007700475-oZJlna2Z" });
+    async function writeToAirtable(userId) {
+      const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
+      const data = {
+        records: [
+          {
+            fields: {
+              userId: userId
+            }
+          }
+        ]
+      };
 
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error('Airtable API error: ' + text);
       }
 
-      const profile = await liff.getProfile();
-
-      if (!profile?.userId) {
-        console.warn("⚠️ 無法取得 userId，重新登入");
-        liff.logout(); // 清掉舊 session
-        liff.login();  // 重新登入
-        return;
-      }
-
-      const userId = profile.userId;
-      console.log("✅ 成功取得 userId:", userId);
-
-      const filloutUrl = `${filloutBaseUrl}?prefill_line_userId=${encodeURIComponent(userId)}`;
-      document.getElementById("filloutForm").src = filloutUrl;
-
-    } catch (err) {
-      console.error("LIFF 發生錯誤：", err);
-      alert("LIFF 發生錯誤：" + err.message);
+      return await res.json();
     }
-  }
 
-  main();
-</script>
+    async function main() {
+      try {
+        await liff.init({ liffId: "2007700475-oZJlna2Z" });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        const userId = profile.userId;
+
+        console.log("✅ 取得 userId:", userId);
+
+        const result = await writeToAirtable(userId);
+        console.log("✅ 寫入 Airtable 成功:", result);
+        alert("綁定成功！");
+
+      } catch (err) {
+        console.error(err);
+        alert("綁定失敗，請稍後再試。");
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
